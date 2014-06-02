@@ -1,0 +1,11 @@
+{
+  "name": "levelgraph_benchmarks",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "async": "^0.9.0",
+    "levelgraph": "^0.8.2",
+    "binary-csv": "^0.2.0",
+    "through2": "^0.4.2"
+  }
+}
