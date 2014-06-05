@@ -1,0 +1,3 @@
+total time 260,6 s
+writes/s 13000
+size 416,7 MB

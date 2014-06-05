@@ -3,14 +3,16 @@ var fs         = require('fs')
   , async     = require("async")
   , binaryCSV = require('binary-csv')
   , through2 = require('through2')
+  , db = levelgraph("importedLG");
 
-levelgraph("importedLG", function(err, db) {
+levelgraph("../importedLG", function(err, db) {
 
   var parser = binaryCSV({separator:'\t', json: true})
+    , startTime = new Date()
     , count  = 0;
-
-  // FATAL ERROR: CALL_AND_RETRY_2 Allocation failed - process out of memory
-  fs.createReadStream('./amazon0601.txt').pipe(parser);
+  
+  
+  fs.createReadStream('../amazon0601.txt').pipe(parser);
   parser.pipe(through2({objectMode: true, highWaterMark:16}, function (chunk, enc, callback) {
     
     var data = {
@@ -20,22 +22,19 @@ levelgraph("importedLG", function(err, db) {
     }
     this.push(data)
 
-    if (++count % 1000 === 0) {
-      console.log(count)
-      // let the GC run from time to time
+    if (++count % 10000 === 0) {
+      
       setImmediate(callback);
     } else {
       callback()
     }
-  })).pipe(db.putStream({highWaterMark:16}));
+  }))
+  .pipe(db.putStream({highWaterMark:16})
+    .on("close", function() {
+      endTime = new Date();
+      var totalTime = endTime - startTime;
+      console.log("total time", totalTime);
+      console.log("writes/s", count / totalTime * 1000);
+    })
+  );
 });
-
-
-
-// db.get({},function(err, list){ 
-//   console.log(list.length);
-//   async.each(list,function(triple, cb){
-//     db.del(triple);
-//     cb()    
-//   })
-// })
