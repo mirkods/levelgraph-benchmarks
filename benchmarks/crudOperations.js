@@ -3,11 +3,12 @@ var fs         = require('fs')
   , async 		 = require('async')
   , graph 		= levelgraph("../importedLG");
 
+var n = 10;
 async.waterfall([
-	insert(10000),
-	get(10000),
-	update(),
-	remove()
+	insert(n),
+	get(n),
+	update(n),
+	remove(n)
 ])
 
 
@@ -16,41 +17,69 @@ function get(counts){
 		console.time('Get '+counts)
 		graph.get({limit: counts}, function(err, list) {
 			console.timeEnd('Get '+counts)
-  		cb(null, list);
+  		cb(null);
   	})
 	}
 }
 
-function update(){
-	return function(list, cb){
-		console.time('Update '+list.length);
-		async.each(list,function(elem, eachCb){
-			graph.del(elem, function(err) {
-		    elem.nodeId = '1';
-		    graph.put(elem, function(err) {
-		      eachCb();
-		    })
-		  })
-		}, function(err){
-			cb(null, list);
-			console.timeEnd('Update '+list.length);
-		})
+function update(counts){
+	var _counts = counts;
+	return function(cb){
+		console.time('Update '+ _counts);
+
+
+		async.whilst(
+			function() {
+				return counts > 0;
+			},
+			function(whileCb) {
+				var triple = {
+		    	subject: "s" + counts,
+		   	  predicate: "p" + counts,
+		    	object: "o" + counts
+		  	};
+				graph.del(triple, function(err) {
+			    triple.nodeId = '1';
+			    graph.put(triple, function(err) {
+						counts--;
+			      whileCb();
+			    });
+			  });		
+			},
+			function(err) {
+				console.timeEnd('Update '+ _counts);
+				cb();
+			}
+		);
 	}
 }
 
 
-function remove(){
-	return function(list, cb){
-		console.time('Remove '+list.length);
-		async.each(list,function(elem, eachCb){
-			
-			graph.del(elem, function(err){
-				eachCb();
-			})
-		}, function(err){
-			cb();
-			console.timeEnd('Remove '+list.length);
-		})
+function remove(counts){
+	var _counts = counts;
+	return function(cb){
+		console.time('Remove '+_counts);
+		async.whilst(
+			function() {
+				return counts > 0;
+			},
+			function(whileCb) {
+				counts--;
+				var triple = {
+		    	subject: "s" + counts,
+		   	  predicate: "p" + counts,
+		    	object: "o" + counts
+		  	};
+		  	graph.del(triple, function(err){
+					whileCb();
+				});				
+			},
+			function(err) {
+				console.timeEnd('Remove '+_counts);
+				cb();
+			}
+		);
+		
 	}
 }
 
@@ -59,7 +88,7 @@ function insert(counts){
 	return function(cb){
 		console.time('Insert '+counts);
 		write = function() {
-	  if(--counts === 0) {
+	  if(counts-- === 0) {
 			console.timeEnd('Insert '+_counts);
 			cb();
 	    return;
